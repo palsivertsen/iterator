@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	errEOI = Error("end of items")
+	errEOI = internalError("end of items")
 )
 
 type ItemsFunc[T any] func([]T) (int, error)
@@ -62,6 +62,6 @@ func (i *Iterator[T]) Item(t *T) {
 	*t = i.ItemsBuffer[0]
 }
 
-type Error string
+type internalError string
 
-func (e Error) Error() string { return string(e) }
+func (e internalError) Error() string { return string(e) }
