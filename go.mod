@@ -1,4 +1,4 @@
-module iterator
+module github.com/palsivertsen/iterator
 
 go 1.19
 
