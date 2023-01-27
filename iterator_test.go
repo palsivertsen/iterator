@@ -28,7 +28,7 @@ func TestIterator(t *testing.T) {
 			t.Parallel()
 
 			unit := iterator.Iterator[string]{
-				NextFunc:    (&nextFuncHelper[string]{items: slices.Clone(tt.items)}).Items,
+				NextPage:    (&nextFuncHelper[string]{items: slices.Clone(tt.items)}).Items,
 				ItemsBuffer: make([]string, 0, 1),
 			}
 
@@ -63,13 +63,31 @@ func TestIterator(t *testing.T) {
 			assert.Equal(t, tt.items, items)
 		})
 	}
+	t.Run("zero value", func(t *testing.T) {
+		t.Parallel()
+
+		unit := iterator.Iterator[string]{}
+
+		var items []string
+		for unit.Next() {
+			var item string
+			unit.Item(&item)
+			items = append(items, item)
+		}
+
+		assert.NoError(t, unit.Err())
+		assert.Equal(t, 0, len(items))
+	})
 }
 
 func TestIterator_ZeroAllocations(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	res := testing.Benchmark(func(b *testing.B) {
 		nfh := nextFuncHelper[string]{items: make([]string, b.N)}
 		unit := iterator.Iterator[string]{
-			NextFunc:    nfh.Items,
+			NextPage:    nfh.Items,
 			ItemsBuffer: make([]string, 1),
 		}
 		b.ResetTimer()
@@ -109,7 +127,7 @@ func BenchmarkIterator(b *testing.B) {
 		b.Run(strconv.Itoa(bm.bufferSize), func(b *testing.B) {
 			nfh := nextFuncHelper[struct{}]{items: make([]struct{}, b.N)}
 			unit := iterator.Iterator[struct{}]{
-				NextFunc:    nfh.Items,
+				NextPage:    nfh.Items,
 				ItemsBuffer: make([]struct{}, bm.bufferSize),
 			}
 			b.ResetTimer()

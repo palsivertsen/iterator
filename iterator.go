@@ -1,3 +1,4 @@
+// Package iterator provides a simple way of working with pagination APIs.
 package iterator
 
 import (
@@ -9,15 +10,24 @@ const (
 	errEOI = internalError("end of items")
 )
 
-type ItemsFunc[T any] func([]T) (int, error)
+// NextPageFunc copies at most len(t) items into t. A return value of 0
+// indicates that there are no more items.
+type NextPageFunc[T any] func(t []T) (int, error)
 
+// An Iterator is a generic way of iterating over items.
+// Useful for integrating with API that uses pagination.
 type Iterator[T any] struct {
-	NextFunc    ItemsFunc[T]
+	// A function for retrieving the next set of items.
+	// If unset the iterator will use the items in the ItemsBuffer directly.
+	NextPage NextPageFunc[T]
+	// A buffer for storing items. The length controls the size of the buffer.
+	// Initial items are used if NextPage is unset.
 	ItemsBuffer []T
 
 	err error
 }
 
+// Err returns the first error, if any.
 func (i *Iterator[T]) Err() error {
 	if errors.Is(i.err, errEOI) {
 		return nil
@@ -25,12 +35,13 @@ func (i *Iterator[T]) Err() error {
 	return i.err
 }
 
+// Next advances the iterator to the next item.
 func (i *Iterator[T]) Next() bool {
 	if i.err != nil {
 		return false
 	}
-	if i.NextFunc == nil {
-		i.NextFunc = func([]T) (int, error) { return 0, nil }
+	if i.NextPage == nil {
+		i.NextPage = func([]T) (int, error) { return 0, nil }
 		return len(i.ItemsBuffer) > 0
 	}
 	if len(i.ItemsBuffer) > 1 {
@@ -43,7 +54,7 @@ func (i *Iterator[T]) Next() bool {
 
 	i.ItemsBuffer = i.ItemsBuffer[0:cap(i.ItemsBuffer)]
 
-	count, err := i.NextFunc(i.ItemsBuffer)
+	count, err := i.NextPage(i.ItemsBuffer)
 	if err != nil {
 		i.err = fmt.Errorf("next func: %w", err)
 		return false
@@ -58,6 +69,7 @@ func (i *Iterator[T]) Next() bool {
 	return true
 }
 
+// Item is used for retrieving the current item. Callers MUST call i.Next() before calling i.Item().
 func (i *Iterator[T]) Item(t *T) {
 	*t = i.ItemsBuffer[0]
 }
