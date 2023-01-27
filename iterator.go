@@ -38,7 +38,7 @@ func (i *Iterator[T]) Next() bool {
 		return true
 	}
 	if cap(i.ItemsBuffer) == 0 {
-		i.ItemsBuffer = make([]T, 32)
+		i.ItemsBuffer = make([]T, 1)
 	}
 
 	i.ItemsBuffer = i.ItemsBuffer[0:cap(i.ItemsBuffer)]
